@@ -18,7 +18,8 @@ import {
   EyeOff,
   Shield,
   Info,
-  Zap
+  Zap,
+  Users
 } from 'lucide-react';
 
 interface CepInfo {
