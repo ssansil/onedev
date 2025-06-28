@@ -18,6 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTool = 'seo' }) => {
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, active: currentTool === 'dashboard' },
     { id: 'device-generator', name: 'Gerador de Dispositivo', icon: Smartphone, active: currentTool === 'device-generator' },
     { id: 'person-generator', name: 'Gerador de Pessoa', icon: User, active: currentTool === 'person-generator' },
+    { id: 'lorem-ipsum', name: 'Gerador Lorem Ipsum', icon: Type, active: currentTool === 'lorem-ipsum' },
   ];
 
   const policyItems = [

@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import DeviceGenerator from './components/DeviceGenerator';
 import PersonGenerator from './components/PersonGenerator';
+import LoremIpsumGenerator from './components/LoremIpsumGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import LGPDInfo from './components/LGPDInfo';
@@ -79,6 +80,8 @@ function App() {
         return <DeviceGenerator />;
       case 'person-generator':
         return <PersonGenerator />;
+      case 'lorem-ipsum':
+        return <LoremIpsumGenerator />;
       case 'privacy':
         return <PrivacyPolicy />;
       case 'cookies':
