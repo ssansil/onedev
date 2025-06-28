@@ -16,19 +16,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTool = 'seo' }) => {
 
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, active: currentTool === 'dashboard' },
-    { id: 'seo', name: 'Gerador de SEO', icon: Search, active: currentTool === 'seo' },
-    { id: 'json', name: 'Formatador JSON', icon: Code, active: currentTool === 'json' },
-    { id: 'cpf-cnpj', name: 'Gerador CPF/CNPJ', icon: CreditCard, active: currentTool === 'cpf-cnpj' },
-    { id: 'credit-card', name: 'Gerador de Cartão', icon: Calculator, active: currentTool === 'credit-card' },
-    { id: 'line-counter', name: 'Contador de Linhas', icon: Hash, active: currentTool === 'line-counter' },
-    { id: 'qr-code', name: 'Gerador de QR Code', icon: QrCode, active: currentTool === 'qr-code' },
-    { id: 'responsive-tester', name: 'Testador Responsivo', icon: Monitor, active: currentTool === 'responsive-tester' },
-    { id: 'uuid-hash-token', name: 'UUID, Hash & Token', icon: Key, active: currentTool === 'uuid-hash-token' },
-    { id: 'jwt-validator', name: 'Validador JWT', icon: Lock, active: currentTool === 'jwt-validator' },
-    { id: 'base64', name: 'Base64 Encode/Decode', icon: Code2, active: currentTool === 'base64' },
-    { id: 'url', name: 'URL Encode/Decode', icon: Link, active: currentTool === 'url' },
-    { id: 'markdown', name: 'Editor de Markdown', icon: FileText, active: currentTool === 'markdown' },
-    { id: 'lorem-ipsum', name: 'Gerador Lorem Ipsum', icon: Type, active: currentTool === 'lorem-ipsum' },
   ];
 
   const policyItems = [
