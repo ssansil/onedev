@@ -15,6 +15,7 @@ import About from './components/About';
 import Changelog from './components/Changelog';
 import CookieModal from './components/CookieModal';
 import CookieSettingsModal, { CookieSettings } from './components/CookieSettings';
+import SEOGenerator from './components/SEOGenerator';
 import { useAnalytics } from './hooks/useAnalytics';
 
 function App() {
