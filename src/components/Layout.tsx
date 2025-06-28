@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Search, Calculator, Palette, Code, Settings, Home, CreditCard, Code2, Link, FileText, BarChart3, Shield, Scale, Cookie, Heart, Cog, Hash, QrCode, GitBranch, Monitor, Key, Lock, Type, Smartphone, User, Server, Building2 } from 'lucide-react';
+import { Menu, X, Search, Calculator, Palette, Code, Settings, Home, CreditCard, Code2, Link, FileText, BarChart3, Shield, Scale, Cookie, Heart, Cog, Hash, QrCode, GitBranch, Monitor, Key, Lock, Type, Smartphone, User, Server, Building2, MapPin } from 'lucide-react';
 import CookieSettingsModal, { CookieSettings } from './CookieSettings';
 import { useAnalytics } from '../hooks/useAnalytics';
 
@@ -19,6 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTool = 'seo' }) => {
     { id: 'device-generator', name: 'Gerador de Dispositivo', icon: Smartphone, active: currentTool === 'device-generator' },
     { id: 'person-generator', name: 'Gerador de Pessoa', icon: User, active: currentTool === 'person-generator' },
     { id: 'company-generator', name: 'Gerador de Empresa', icon: Building2, active: currentTool === 'company-generator' },
+    { id: 'cep-generator', name: 'Gerador de CEP', icon: MapPin, active: currentTool === 'cep-generator' },
     { id: 'lorem-ipsum', name: 'Gerador Lorem Ipsum', icon: Type, active: currentTool === 'lorem-ipsum' },
     { id: 'fake-rest-api', name: 'Gerador REST API Fake', icon: Server, active: currentTool === 'fake-rest-api' },
   ];
