@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import DeviceGenerator from './components/DeviceGenerator';
 import PersonGenerator from './components/PersonGenerator';
 import LoremIpsumGenerator from './components/LoremIpsumGenerator';
+import FakeRestApiGenerator from './components/FakeRestApiGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import LGPDInfo from './components/LGPDInfo';
@@ -82,6 +83,8 @@ function App() {
         return <PersonGenerator />;
       case 'lorem-ipsum':
         return <LoremIpsumGenerator />;
+      case 'fake-rest-api':
+        return <FakeRestApiGenerator />;
       case 'privacy':
         return <PrivacyPolicy />;
       case 'cookies':
