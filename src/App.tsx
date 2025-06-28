@@ -81,7 +81,7 @@ function App() {
         return <Dashboard />;
      case 'seo':
         return <SEOGenerator />;
-    case 'device-generator':
+     case 'device-generator':
         return <DeviceGenerator />;
       case 'person-generator':
         return <PersonGenerator />;
