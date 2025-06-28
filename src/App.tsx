@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
-import SEOGenerator from './components/SEOGenerator';
-import JSONFormatter from './components/JSONFormatter';
-import CPFCNPJGenerator from './components/CPFCNPJGenerator';
-import CreditCardGenerator from './components/CreditCardGenerator';
-import LineCharacterCounter from './components/LineCharacterCounter';
-import QRCodeGenerator from './components/QRCodeGenerator';
-import ResponsiveTester from './components/ResponsiveTester';
-import UUIDHashTokenGenerator from './components/UUIDHashTokenGenerator';
-import JWTValidator from './components/JWTValidator';
-import Base64Tool from './components/Base64Tool';
-import URLTool from './components/URLTool';
-import MarkdownEditor from './components/MarkdownEditor';
-//import LoremIpsumGenerator from './components/LoremIpsumGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import LGPDInfo from './components/LGPDInfo';
@@ -86,30 +73,6 @@ function App() {
     switch (currentTool) {
       case 'dashboard':
         return <Dashboard />;
-      case 'seo':
-        return <SEOGenerator />;
-      case 'json':
-        return <JSONFormatter />;
-      case 'cpf-cnpj':
-        return <CPFCNPJGenerator />;
-      case 'credit-card':
-        return <CreditCardGenerator />;
-      case 'line-counter':
-        return <LineCharacterCounter />;
-      case 'qr-code':
-        return <QRCodeGenerator />;
-      case 'responsive-tester':
-        return <ResponsiveTester />;
-      case 'uuid-hash-token':
-        return <UUIDHashTokenGenerator />;
-      case 'jwt-validator':
-        return <JWTValidator />;
-      case 'base64':
-        return <Base64Tool />;
-      case 'url':
-        return <URLTool />;
-      case 'markdown':
-        return <MarkdownEditor />;
       case 'privacy':
         return <PrivacyPolicy />;
       case 'cookies':
