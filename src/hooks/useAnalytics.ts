@@ -43,6 +43,7 @@ const DEFAULT_TOOLS: ToolUsage[] = [
   { id: 'lorem-ipsum', name: 'Gerador Lorem Ipsum', uses: 0, lastUsed: null },
   { id: 'device-generator', name: 'Gerador de Dispositivo', uses: 0, lastUsed: null },
   { id: 'person-generator', name: 'Gerador de Pessoa', uses: 0, lastUsed: null },
+  { id: 'company-generator', name: 'Gerador de Empresa', uses: 0, lastUsed: null },
   { id: 'fake-rest-api', name: 'Gerador REST API Fake', uses: 0, lastUsed: null },
 ];
 

@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import DeviceGenerator from './components/DeviceGenerator';
 import PersonGenerator from './components/PersonGenerator';
+import CompanyGenerator from './components/CompanyGenerator';
 import LoremIpsumGenerator from './components/LoremIpsumGenerator';
 import FakeRestApiGenerator from './components/FakeRestApiGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -81,6 +82,8 @@ function App() {
         return <DeviceGenerator />;
       case 'person-generator':
         return <PersonGenerator />;
+      case 'company-generator':
+        return <CompanyGenerator />;
       case 'lorem-ipsum':
         return <LoremIpsumGenerator />;
       case 'fake-rest-api':
