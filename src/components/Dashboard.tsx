@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart3, 
   Clock, 
@@ -18,10 +18,12 @@ import {
   Info
 } from 'lucide-react';
 import { useAnalytics } from '../hooks/useAnalytics';
+import ClearDataModal from './ClearDataModal';
 
 const Dashboard: React.FC = () => {
   const { analyticsData, cookieConsent, clearAllData } = useAnalytics();
   const { toolUsage, sessionData, totalUsage } = analyticsData;
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const mostUsedTool = toolUsage.length > 0 
     ? toolUsage.reduce((prev, current) => (prev.uses > current.uses ? prev : current))
@@ -78,9 +80,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleClearData = () => {
-    if (window.confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
-      clearAllData();
-    }
+    clearAllData();
+    setShowClearModal(false);
   };
 
   return (
@@ -328,32 +329,33 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Data Management */}
-      <div className="mt-8 bg-amber-50 border border-amber-200 rounded-2xl p-6">
+      <div className="mt-8 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6">
         <div className="flex items-start gap-3">
           <Activity className="w-6 h-6 text-amber-600 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-amber-900 mb-2">Gerenciar Dados Locais</h3>
+            <h3 className="text-lg font-semibold text-amber-900 mb-2">🗂️ Gerenciar Dados Locais</h3>
             <p className="text-amber-800 leading-relaxed mb-4">
               Todos os dados mostrados neste dashboard são armazenados localmente no seu navegador. 
               A contagem de uso das ferramentas é obrigatória para melhorar sua experiência, mas você 
               pode limpar essas informações a qualquer momento:
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 <div className="space-y-2 text-sm text-amber-700">
                   <p>• <strong>Chrome/Edge:</strong> Configurações → Privacidade → Limpar dados de navegação</p>
                   <p>• <strong>Firefox:</strong> Configurações → Privacidade → Limpar dados</p>
                   <p>• <strong>Safari:</strong> Preferências → Privacidade → Gerenciar dados do site</p>
+                  <p>• <strong>OneDev:</strong> Use o botão abaixo para limpeza completa e segura</p>
                 </div>
               </div>
               
               <div className="flex-shrink-0">
                 <button
-                  onClick={handleClearData}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  onClick={() => setShowClearModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-5 h-5" />
                   Limpar Todos os Dados
                 </button>
               </div>
@@ -361,6 +363,13 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Clear Data Modal */}
+      <ClearDataModal
+        isOpen={showClearModal}
+        onClose={() => setShowClearModal(false)}
+        onConfirm={handleClearData}
+      />
     </div>
   );
 };
