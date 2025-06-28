@@ -79,6 +79,9 @@ function App() {
     switch (currentTool) {
       case 'dashboard':
         return <Dashboard />;
+        case 'seo':
+        return <SEOGenerator />;
+        
       case 'device-generator':
         return <DeviceGenerator />;
       case 'person-generator':
