@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Copy, Check, Globe, Search, Share2, AlertCircle, Info, Upload, X, Eye, Facebook, Twitter, Image as ImageIcon, Palette } from 'lucide-react';
+import { Copy, Check, Globe, Search, Share2, AlertCircle, Info, Upload, X, Eye, Facebook, Twitter, Image as ImageIcon, Palette, Crop, Scissors } from 'lucide-react';
+import ImageCropModal from './ImageCropModal';
+import FaviconPreview from './FaviconPreview';
 
 interface SEOData {
   title: string;
@@ -35,6 +37,16 @@ interface UploadedFile {
   name: string;
   url: string;
   type: 'favicon' | 'image';
+  originalUrl?: string;
+}
+
+interface CropModalState {
+  isOpen: boolean;
+  imageSrc: string;
+  aspectRatio: number;
+  title: string;
+  description: string;
+  targetField: keyof SEOData;
 }
 
 const SEOGenerator: React.FC = () => {
@@ -65,7 +77,17 @@ const SEOGenerator: React.FC = () => {
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [copied, setCopied] = useState(false);
+  const [cropModal, setCropModal] = useState<CropModalState>({
+    isOpen: false,
+    imageSrc: '',
+    aspectRatio: 1.91,
+    title: '',
+    description: '',
+    targetField: 'ogImage'
+  });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const validateField = useCallback((field: 'title' | 'description', value: string): ValidationState[typeof field] => {
     const count = value.length;
@@ -125,7 +147,8 @@ const SEOGenerator: React.FC = () => {
         id: Date.now().toString(),
         name: file.name,
         url,
-        type
+        type,
+        originalUrl: url
       };
       
       setUploadedFiles(prev => [...prev, uploadedFile]);
@@ -145,10 +168,36 @@ const SEOGenerator: React.FC = () => {
     }
   };
 
+  const openCropModal = (imageSrc: string, targetField: keyof SEOData, aspectRatio: number, title: string, description: string) => {
+    setCropModal({
+      isOpen: true,
+      imageSrc,
+      aspectRatio,
+      title,
+      description,
+      targetField
+    });
+  };
+
+  const handleCropComplete = (croppedImageUrl: string) => {
+    updateField(cropModal.targetField, croppedImageUrl);
+    
+    // Update uploaded files with cropped version
+    setUploadedFiles(prev => prev.map(file => {
+      if (file.url === cropModal.imageSrc) {
+        return { ...file, url: croppedImageUrl };
+      }
+      return file;
+    }));
+  };
+
   const removeUploadedFile = (id: string) => {
     const file = uploadedFiles.find(f => f.id === id);
     if (file) {
       URL.revokeObjectURL(file.url);
+      if (file.originalUrl && file.originalUrl !== file.url) {
+        URL.revokeObjectURL(file.originalUrl);
+      }
       setUploadedFiles(prev => prev.filter(f => f.id !== id));
       
       // Remove from SEO data if it matches
@@ -532,7 +581,7 @@ const SEOGenerator: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
         <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5 text-blue-600" />
-          Upload Temporário de Arquivos
+          Upload e Ajuste de Imagens
         </h3>
         
         <div className="grid md:grid-cols-2 gap-4">
@@ -561,22 +610,22 @@ const SEOGenerator: React.FC = () => {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Imagens/Logo
+              Imagens para Redes Sociais
             </label>
             <input
               type="file"
+              ref={imageInputRef}
               onChange={(e) => handleFileUpload(e, 'image')}
               accept=".png,.jpg,.jpeg,.webp"
               className="hidden"
-              id="image-upload"
             />
-            <label
-              htmlFor="image-upload"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-400 transition-colors cursor-pointer"
+            <button
+              onClick={() => imageInputRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-400 transition-colors"
             >
               <ImageIcon className="w-4 h-4 text-purple-600" />
               <span className="text-sm text-purple-700">Selecionar Imagem</span>
-            </label>
+            </button>
             <p className="text-xs text-gray-500 mt-1">
               Suporta .png, .jpg, .webp (até 5MB)
             </p>
@@ -585,22 +634,65 @@ const SEOGenerator: React.FC = () => {
 
         {/* Uploaded Files */}
         {uploadedFiles.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Arquivos Enviados:</h4>
-            <div className="space-y-2">
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Arquivos Enviados:</h4>
+            <div className="space-y-3">
               {uploadedFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-3 p-2 bg-white rounded border">
-                  <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                <div key={file.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border shadow-sm">
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                     {file.type === 'favicon' ? (
-                      <Palette className="w-4 h-4 text-gray-600" />
+                      <Palette className="w-6 h-6 text-gray-600" />
                     ) : (
-                      <ImageIcon className="w-4 h-4 text-gray-600" />
+                      <img 
+                        src={file.url} 
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling!.classList.remove('hidden');
+                        }}
+                      />
                     )}
+                    <ImageIcon className="w-6 h-6 text-gray-600 hidden" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-800">{file.name}</p>
-                    <p className="text-xs text-gray-500">{file.type === 'favicon' ? 'Favicon' : 'Imagem'}</p>
+                    <p className="text-xs text-gray-500">
+                      {file.type === 'favicon' ? 'Favicon/Ícone' : 'Imagem para redes sociais'}
+                    </p>
                   </div>
+                  
+                  {file.type === 'image' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openCropModal(
+                          file.originalUrl || file.url, 
+                          'ogImage', 
+                          1.91, 
+                          'Ajustar para Facebook',
+                          'Corte a imagem no formato ideal para Facebook (1200x630px)'
+                        )}
+                        className="flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100 transition-colors"
+                      >
+                        <Crop className="w-3 h-3" />
+                        Facebook
+                      </button>
+                      <button
+                        onClick={() => openCropModal(
+                          file.originalUrl || file.url, 
+                          'twitterImage', 
+                          1.91, 
+                          'Ajustar para Twitter',
+                          'Corte a imagem no formato ideal para Twitter (1200x630px)'
+                        )}
+                        className="flex items-center gap-1 px-3 py-1 bg-cyan-50 text-cyan-700 rounded text-xs hover:bg-cyan-100 transition-colors"
+                      >
+                        <Scissors className="w-3 h-3" />
+                        Twitter
+                      </button>
+                    </div>
+                  )}
+                  
                   <button
                     onClick={() => removeUploadedFile(file.id)}
                     className="p-1 text-red-500 hover:text-red-700 transition-colors"
@@ -742,13 +834,30 @@ const SEOGenerator: React.FC = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Imagem OG (opcional)
           </label>
-          <input
-            type="url"
-            value={seoData.ogImage}
-            onChange={(e) => updateField('ogImage', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            placeholder="https://meusite.com/imagem-compartilhamento.jpg"
-          />
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={seoData.ogImage}
+              onChange={(e) => updateField('ogImage', e.target.value)}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              placeholder="https://meusite.com/imagem-compartilhamento.jpg"
+            />
+            {seoData.ogImage && (
+              <button
+                onClick={() => openCropModal(
+                  seoData.ogImage, 
+                  'ogImage', 
+                  1.91, 
+                  'Ajustar Imagem Facebook',
+                  'Corte a imagem no formato ideal para Facebook (1200x630px)'
+                )}
+                className="flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Crop className="w-4 h-4" />
+                Ajustar
+              </button>
+            )}
+          </div>
         </div>
 
         {/* OG URL */}
@@ -841,13 +950,30 @@ const SEOGenerator: React.FC = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Imagem Twitter (opcional)
           </label>
-          <input
-            type="url"
-            value={seoData.twitterImage}
-            onChange={(e) => updateField('twitterImage', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            placeholder="https://meusite.com/imagem-twitter.jpg"
-          />
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={seoData.twitterImage}
+              onChange={(e) => updateField('twitterImage', e.target.value)}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              placeholder="https://meusite.com/imagem-twitter.jpg"
+            />
+            {seoData.twitterImage && (
+              <button
+                onClick={() => openCropModal(
+                  seoData.twitterImage, 
+                  'twitterImage', 
+                  1.91, 
+                  'Ajustar Imagem Twitter',
+                  'Corte a imagem no formato ideal para Twitter (1200x630px)'
+                )}
+                className="flex items-center gap-2 px-4 py-3 bg-cyan-50 border border-cyan-200 text-cyan-700 rounded-lg hover:bg-cyan-100 transition-colors"
+              >
+                <Crop className="w-4 h-4" />
+                Ajustar
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -865,8 +991,14 @@ const SEOGenerator: React.FC = () => {
 
     return (
       <div className="space-y-8">
+        {/* Favicon Preview */}
+        <FaviconPreview 
+          faviconUrl={seoData.faviconUrl || seoData.faviconSvgUrl || seoData.appleTouchIcon}
+          title={seoData.title}
+        />
+
         {/* Google Search Preview */}
-        <div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20">
           <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
             <Search className="w-5 h-5 text-green-600" />
             Visualização Google
@@ -887,7 +1019,7 @@ const SEOGenerator: React.FC = () => {
         </div>
 
         {/* Facebook Preview */}
-        <div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20">
           <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
             <Facebook className="w-5 h-5 text-blue-600" />
             Visualização Facebook
@@ -924,7 +1056,7 @@ const SEOGenerator: React.FC = () => {
         </div>
 
         {/* Twitter Preview */}
-        <div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20">
           <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
             <Twitter className="w-5 h-5 text-blue-400" />
             Visualização Twitter
@@ -981,7 +1113,7 @@ const SEOGenerator: React.FC = () => {
         </div>
 
         {/* HTML Code Preview */}
-        <div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/20">
           <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
             <Globe className="w-5 h-5 text-purple-600" />
             Código HTML Gerado
@@ -1027,7 +1159,7 @@ const SEOGenerator: React.FC = () => {
           </h1>
         </div>
         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-          Crie tags SEO otimizadas com upload de imagens, visualização de redes sociais e validação em tempo real
+          Crie tags SEO otimizadas com upload de imagens, ajuste com react-easy-crop e visualização completa
         </p>
       </div>
 
@@ -1064,6 +1196,17 @@ const SEOGenerator: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        isOpen={cropModal.isOpen}
+        onClose={() => setCropModal(prev => ({ ...prev, isOpen: false }))}
+        imageSrc={cropModal.imageSrc}
+        onCropComplete={handleCropComplete}
+        aspectRatio={cropModal.aspectRatio}
+        title={cropModal.title}
+        description={cropModal.description}
+      />
     </div>
   );
 };
