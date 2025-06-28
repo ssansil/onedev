@@ -12,6 +12,7 @@ export interface SessionData {
   startTime: Date;
   totalSessions: number;
   currentSession: number;
+  lastVisit: Date;
 }
 
 export interface AnalyticsData {
@@ -25,6 +26,11 @@ const STORAGE_KEYS = {
   SESSION_DATA: 'onedev-session-data',
   COOKIE_CONSENT: 'onedev-cookie-consent',
   COOKIE_SETTINGS: 'onedev-cookie-settings'
+};
+
+const COOKIE_KEYS = {
+  SESSION_ID: 'onedev-session-id',
+  LAST_VISIT: 'onedev-last-visit'
 };
 
 const DEFAULT_TOOLS: ToolUsage[] = [
@@ -48,6 +54,28 @@ const DEFAULT_TOOLS: ToolUsage[] = [
   { id: 'fake-rest-api', name: 'Gerador REST API Fake', uses: 0, lastUsed: null },
 ];
 
+// Funções para gerenciar cookies
+const setCookie = (name: string, value: string, hours: number = 24) => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + (hours * 60 * 60 * 1000));
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+};
+
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+};
+
 export const useAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     toolUsage: DEFAULT_TOOLS,
@@ -55,7 +83,8 @@ export const useAnalytics = () => {
       sessionId: '',
       startTime: new Date(),
       totalSessions: 0,
-      currentSession: 0
+      currentSession: 0,
+      lastVisit: new Date()
     },
     totalUsage: 0
   });
@@ -101,28 +130,55 @@ export const useAnalytics = () => {
         }));
       }
 
+      // Verificar sessão via cookies
+      const existingSessionId = getCookie(COOKIE_KEYS.SESSION_ID);
+      const lastVisitCookie = getCookie(COOKIE_KEYS.LAST_VISIT);
+      const now = new Date();
+      
       // Load or create session data
       const savedSession = localStorage.getItem(STORAGE_KEYS.SESSION_DATA);
-      let sessionData;
+      let sessionData: SessionData;
       
       if (savedSession) {
         const parsed = JSON.parse(savedSession);
         sessionData = {
           ...parsed,
           startTime: new Date(parsed.startTime),
-          currentSession: parsed.currentSession + 1
+          lastVisit: new Date(parsed.lastVisit || parsed.startTime)
         };
       } else {
+        // Primeira visita
         sessionData = {
           sessionId: generateSessionId(),
-          startTime: new Date(),
-          totalSessions: 1,
-          currentSession: 1
+          startTime: now,
+          totalSessions: 0,
+          currentSession: 0,
+          lastVisit: now
         };
       }
 
-      // Update session data
-      sessionData.totalSessions = sessionData.currentSession;
+      // Verificar se é uma nova sessão
+      const isNewSession = !existingSessionId || !lastVisitCookie || 
+        (lastVisitCookie && (now.getTime() - new Date(lastVisitCookie).getTime()) > 24 * 60 * 60 * 1000);
+
+      if (isNewSession) {
+        // Nova sessão
+        sessionData.currentSession = sessionData.totalSessions + 1;
+        sessionData.totalSessions = sessionData.currentSession;
+        sessionData.sessionId = generateSessionId();
+        sessionData.startTime = now;
+        sessionData.lastVisit = now;
+
+        // Definir cookies de sessão (24 horas)
+        setCookie(COOKIE_KEYS.SESSION_ID, sessionData.sessionId, 24);
+        setCookie(COOKIE_KEYS.LAST_VISIT, now.toISOString(), 24);
+      } else {
+        // Sessão existente - apenas atualizar último acesso
+        sessionData.lastVisit = now;
+        setCookie(COOKIE_KEYS.LAST_VISIT, now.toISOString(), 24);
+      }
+
+      // Salvar dados da sessão
       localStorage.setItem(STORAGE_KEYS.SESSION_DATA, JSON.stringify(sessionData));
 
       const totalUsage = toolUsage.reduce((sum, tool) => sum + tool.uses, 0);
@@ -197,9 +253,11 @@ export const useAnalytics = () => {
       functional: false
     }));
 
-    // Clear analytics data
+    // Clear analytics data and cookies
     localStorage.removeItem(STORAGE_KEYS.TOOL_USAGE);
     localStorage.removeItem(STORAGE_KEYS.SESSION_DATA);
+    deleteCookie(COOKIE_KEYS.SESSION_ID);
+    deleteCookie(COOKIE_KEYS.LAST_VISIT);
   }, []);
 
   const updateCookieSettings = useCallback((newSettings: typeof cookieSettings) => {
@@ -210,6 +268,8 @@ export const useAnalytics = () => {
       // Clear analytics data if analytics is disabled
       localStorage.removeItem(STORAGE_KEYS.TOOL_USAGE);
       localStorage.removeItem(STORAGE_KEYS.SESSION_DATA);
+      deleteCookie(COOKIE_KEYS.SESSION_ID);
+      deleteCookie(COOKIE_KEYS.LAST_VISIT);
       setAnalyticsData(prev => ({
         ...prev,
         toolUsage: DEFAULT_TOOLS,
@@ -226,6 +286,10 @@ export const useAnalytics = () => {
     localStorage.removeItem(STORAGE_KEYS.COOKIE_CONSENT);
     localStorage.removeItem(STORAGE_KEYS.COOKIE_SETTINGS);
     
+    // Clear session cookies
+    deleteCookie(COOKIE_KEYS.SESSION_ID);
+    deleteCookie(COOKIE_KEYS.LAST_VISIT);
+    
     setCookieConsent(null);
     setCookieSettings({
       essential: true,
@@ -240,7 +304,8 @@ export const useAnalytics = () => {
         sessionId: '',
         startTime: new Date(),
         totalSessions: 0,
-        currentSession: 0
+        currentSession: 0,
+        lastVisit: new Date()
       },
       totalUsage: 0
     });
