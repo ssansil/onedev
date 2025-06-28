@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
+import DeviceGenerator from './components/DeviceGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import LGPDInfo from './components/LGPDInfo';
@@ -73,6 +74,8 @@ function App() {
     switch (currentTool) {
       case 'dashboard':
         return <Dashboard />;
+      case 'device-generator':
+        return <DeviceGenerator />;
       case 'privacy':
         return <PrivacyPolicy />;
       case 'cookies':
