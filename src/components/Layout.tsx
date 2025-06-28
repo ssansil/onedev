@@ -16,7 +16,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTool = 'seo' }) => {
 
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, active: currentTool === 'dashboard' },
+        { id: 'seo', name: 'Gerador de SEO', icon: Search, active: currentTool === 'seo' },
     { id: 'device-generator', name: 'Gerador de Dispositivo', icon: Smartphone, active: currentTool === 'device-generator' },
+    
     { id: 'person-generator', name: 'Gerador de Pessoa', icon: User, active: currentTool === 'person-generator' },
     { id: 'company-generator', name: 'Gerador de Empresa', icon: Building2, active: currentTool === 'company-generator' },
     { id: 'cep-generator', name: 'Gerador de CEP', icon: MapPin, active: currentTool === 'cep-generator' },
