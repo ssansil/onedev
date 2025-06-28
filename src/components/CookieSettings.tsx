@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cookie, Shield, BarChart3, Palette, Clock, X, Save } from 'lucide-react';
+import { Cookie, Shield, BarChart3, Palette, Clock, X, Save, Info } from 'lucide-react';
 
 interface CookieSettingsProps {
   isOpen: boolean;
@@ -43,22 +43,23 @@ const CookieSettingsModal: React.FC<CookieSettingsProps> = ({
       details: [
         'Funcionamento básico da aplicação',
         'Navegação entre páginas',
-        'Segurança da sessão'
+        'Segurança da sessão',
+        'Contagem de uso de ferramentas (OBRIGATÓRIO)'
       ]
     },
     {
       id: 'analytics' as keyof CookieSettings,
       name: 'Cookies de Análise',
-      description: 'Contabilizam uso das ferramentas (dados locais)',
+      description: 'Contabilizam sessões e dados estatísticos (dados locais)',
       icon: BarChart3,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200',
       required: false,
       details: [
-        'Contagem de uso de ferramentas',
         'Estatísticas de sessão',
-        'Dados de performance local'
+        'Dados de performance local',
+        'Análise de padrões de uso'
       ]
     },
     {
@@ -128,6 +129,22 @@ const CookieSettingsModal: React.FC<CookieSettingsProps> = ({
                 <p className="text-xs text-green-700 leading-relaxed">
                   Todos os cookies são armazenados localmente no seu navegador. 
                   Nenhum dado é enviado para nossos servidores ou terceiros.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mandatory Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-blue-900 mb-1">
+                  📊 Contagem Obrigatória
+                </h4>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  A contagem de uso das ferramentas é sempre ativa para melhorar sua experiência. 
+                  Esta funcionalidade não pode ser desabilitada, mas os dados permanecem apenas no seu navegador.
                 </p>
               </div>
             </div>
@@ -211,7 +228,7 @@ const CookieSettingsModal: React.FC<CookieSettingsProps> = ({
           </div>
 
           <p className="text-xs text-gray-500 mt-4 text-center">
-            Suas preferências são salvas localmente e podem ser alteradas a qualquer momento.
+            A contagem de uso das ferramentas permanece sempre ativa. Suas outras preferências são salvas localmente.
           </p>
         </div>
       </div>

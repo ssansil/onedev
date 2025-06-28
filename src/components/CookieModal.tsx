@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cookie, X, Shield, Check, Settings } from 'lucide-react';
+import { Cookie, X, Shield, Check, Settings, Info } from 'lucide-react';
 
 interface CookieModalProps {
   isOpen: boolean;
@@ -30,9 +30,24 @@ const CookieModal: React.FC<CookieModalProps> = ({ isOpen, onAccept, onDecline, 
           {/* Content */}
           <div className="space-y-4">
             <p className="text-gray-700 leading-relaxed">
-              Utilizamos cookies essenciais para melhorar sua experiência e contabilizar o uso das ferramentas. 
+              Utilizamos cookies para melhorar sua experiência. A contagem de uso das ferramentas é 
+              <strong> obrigatória</strong> e sempre ativa, mas você pode escolher sobre outros tipos de cookies.
               <strong> Todos os dados permanecem no seu navegador.</strong>
             </p>
+
+            {/* Mandatory Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-900 mb-1">Contagem Obrigatória</h4>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    A contagem de uso das ferramentas é sempre ativa para melhorar sua experiência. 
+                    Estes dados ficam apenas no seu navegador.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-start gap-2">
@@ -51,19 +66,27 @@ const CookieModal: React.FC<CookieModalProps> = ({ isOpen, onAccept, onDecline, 
               <ul className="text-sm text-gray-700 space-y-2">
                 <li className="flex items-start gap-2">
                   <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  Contagem de uso de cada ferramenta
+                  <div>
+                    <strong>Obrigatório:</strong> Contagem de uso de cada ferramenta
+                  </div>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  Número de sessões ativas
+                  <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong>Opcional:</strong> Número de sessões ativas
+                  </div>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  Preferências de tema e configurações
+                  <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong>Opcional:</strong> Preferências de tema e configurações
+                  </div>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  Última ferramenta utilizada
+                  <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong>Opcional:</strong> Última ferramenta utilizada
+                  </div>
                 </li>
               </ul>
             </div>
@@ -92,12 +115,12 @@ const CookieModal: React.FC<CookieModalProps> = ({ isOpen, onAccept, onDecline, 
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               <X className="w-4 h-4" />
-              Recusar
+              Apenas Obrigatórios
             </button>
           </div>
 
           <p className="text-xs text-gray-500 mt-4 text-center">
-            Você pode alterar suas preferências a qualquer momento nas configurações.
+            A contagem de uso das ferramentas permanece sempre ativa. Você pode alterar outras preferências a qualquer momento.
           </p>
         </div>
       </div>

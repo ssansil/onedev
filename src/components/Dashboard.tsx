@@ -14,7 +14,8 @@ import {
   Lock,
   Eye,
   Cpu,
-  Trash2
+  Trash2,
+  Info
 } from 'lucide-react';
 import { useAnalytics } from '../hooks/useAnalytics';
 
@@ -99,6 +100,22 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
+      {/* Tool Usage Tracking Notice */}
+      <div className="mb-8 p-4 rounded-lg border bg-blue-50 border-blue-200">
+        <div className="flex items-center gap-3">
+          <Info className="w-5 h-5 text-blue-600" />
+          <div>
+            <h3 className="font-medium text-blue-900">
+              📊 Contagem de Uso de Ferramentas
+            </h3>
+            <p className="text-sm text-blue-700">
+              A contagem de uso das ferramentas é <strong>obrigatória</strong> e sempre ativa para melhorar sua experiência. 
+              Todos os dados permanecem localmente no seu navegador.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Cookie Consent Status */}
       {cookieConsent !== null && (
         <div className={`mb-8 p-4 rounded-lg border ${
@@ -120,8 +137,8 @@ const Dashboard: React.FC = () => {
                 cookieConsent ? 'text-green-700' : 'text-amber-700'
               }`}>
                 {cookieConsent 
-                  ? 'Estatísticas de uso estão sendo coletadas localmente.'
-                  : 'Apenas cookies essenciais estão ativos. Estatísticas não estão sendo coletadas.'
+                  ? 'Todas as funcionalidades de analytics estão ativas.'
+                  : 'Apenas contagem de uso de ferramentas está ativa (obrigatória). Outras funcionalidades de analytics estão desabilitadas.'
                 }
               </p>
             </div>
@@ -137,8 +154,8 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-green-900 mb-2">🔒 Dados 100% Locais</h3>
             <p className="text-green-800 leading-relaxed">
               Todas as estatísticas mostradas neste dashboard são armazenadas localmente no seu navegador. 
-              <strong> Nenhum dado é enviado para nossos servidores ou terceiros.</strong> Você pode limpar 
-              essas informações a qualquer momento.
+              <strong> Nenhum dado é enviado para nossos servidores ou terceiros.</strong> A contagem de uso 
+              das ferramentas é obrigatória para melhorar sua experiência, mas permanece sempre no seu dispositivo.
             </p>
           </div>
         </div>
@@ -177,56 +194,49 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Tool Usage */}
+        {/* Tool Usage - SEMPRE DISPONÍVEL */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
           <div className="flex items-center gap-2 mb-6">
             <TrendingUp className="w-5 h-5 text-indigo-600" />
             <h2 className="text-xl font-semibold text-gray-800">Uso das Ferramentas</h2>
+            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+              SEMPRE ATIVO
+            </span>
           </div>
 
-          {cookieConsent ? (
-            <div className="space-y-4">
-              {toolUsage
-                .sort((a, b) => b.uses - a.uses)
-                .map((tool) => {
-                  const percentage = totalUsage > 0 ? (tool.uses / totalUsage) * 100 : 0;
-                  
-                  return (
-                    <div key={tool.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <Activity className="w-5 h-5 text-gray-600" />
-                          <span className="font-medium text-gray-900">{tool.name}</span>
-                        </div>
-                        <span className="text-sm font-semibold text-gray-700">
-                          {tool.uses} {tool.uses === 1 ? 'uso' : 'usos'}
-                        </span>
+          <div className="space-y-4">
+            {toolUsage
+              .sort((a, b) => b.uses - a.uses)
+              .map((tool) => {
+                const percentage = totalUsage > 0 ? (tool.uses / totalUsage) * 100 : 0;
+                
+                return (
+                  <div key={tool.id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <Activity className="w-5 h-5 text-gray-600" />
+                        <span className="font-medium text-gray-900">{tool.name}</span>
                       </div>
-                      
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                        <div 
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{percentage.toFixed(1)}% do total</span>
-                        <span>Último uso: {formatDate(tool.lastUsed)}</span>
-                      </div>
+                      <span className="text-sm font-semibold text-gray-700">
+                        {tool.uses} {tool.uses === 1 ? 'uso' : 'usos'}
+                      </span>
                     </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Estatísticas não disponíveis</p>
-              <p className="text-sm text-gray-500">
-                Aceite os cookies de análise para ver o uso das ferramentas
-              </p>
-            </div>
-          )}
+                    
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{percentage.toFixed(1)}% do total</span>
+                      <span>Último uso: {formatDate(tool.lastUsed)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
 
         {/* Session Info & Privacy */}
@@ -238,48 +248,39 @@ const Dashboard: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-800">Informações da Sessão</h2>
             </div>
 
-            {cookieConsent ? (
-              <div className="space-y-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-blue-900">Sessão Atual:</span>
-                    <span className="text-sm text-blue-700">#{sessionData.currentSession}</span>
-                  </div>
+            <div className="space-y-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-blue-900">Sessão Atual:</span>
+                  <span className="text-sm text-blue-700">#{sessionData.currentSession}</span>
                 </div>
-
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-purple-900">Total de Sessões:</span>
-                    <span className="text-sm text-purple-700">{sessionData.totalSessions}</span>
-                  </div>
-                </div>
-
-                <div className="bg-green-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-green-900">Iniciada em:</span>
-                    <span className="text-sm text-green-700">
-                      {formatDate(sessionData.startTime)}
-                    </span>
-                  </div>
-                </div>
-
-                {mostUsedTool && mostUsedTool.uses > 0 && (
-                  <div className="bg-amber-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-amber-900">Ferramenta Favorita:</span>
-                      <span className="text-sm text-amber-700">{mostUsedTool.name}</span>
-                    </div>
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="text-center py-4">
-                <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">
-                  Informações de sessão não disponíveis
-                </p>
+
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-purple-900">Total de Sessões:</span>
+                  <span className="text-sm text-purple-700">{sessionData.totalSessions}</span>
+                </div>
               </div>
-            )}
+
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-green-900">Iniciada em:</span>
+                  <span className="text-sm text-green-700">
+                    {formatDate(sessionData.startTime)}
+                  </span>
+                </div>
+              </div>
+
+              {mostUsedTool && mostUsedTool.uses > 0 && (
+                <div className="bg-amber-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-amber-900">Ferramenta Favorita:</span>
+                    <span className="text-sm text-amber-700">{mostUsedTool.name}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Privacy Features */}
@@ -334,7 +335,8 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-amber-900 mb-2">Gerenciar Dados Locais</h3>
             <p className="text-amber-800 leading-relaxed mb-4">
               Todos os dados mostrados neste dashboard são armazenados localmente no seu navegador. 
-              Você pode limpar essas informações a qualquer momento:
+              A contagem de uso das ferramentas é obrigatória para melhorar sua experiência, mas você 
+              pode limpar essas informações a qualquer momento:
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">

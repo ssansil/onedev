@@ -97,7 +97,7 @@ export const useAnalytics = () => {
     functional: true
   });
 
-  // Initialize analytics data
+  // Initialize analytics data - SEMPRE carrega dados de uso de ferramentas
   useEffect(() => {
     const consent = localStorage.getItem(STORAGE_KEYS.COOKIE_CONSENT);
     const settings = localStorage.getItem(STORAGE_KEYS.COOKIE_SETTINGS);
@@ -110,15 +110,13 @@ export const useAnalytics = () => {
       setCookieSettings(JSON.parse(settings));
     }
 
-    // Load existing data if consent is given
-    if (consent === 'true') {
-      loadAnalyticsData();
-    }
+    // SEMPRE carrega dados de analytics (uso de ferramentas é obrigatório)
+    loadAnalyticsData();
   }, []);
 
   const loadAnalyticsData = useCallback(() => {
     try {
-      // Load tool usage
+      // SEMPRE carrega tool usage (obrigatório)
       const savedUsage = localStorage.getItem(STORAGE_KEYS.TOOL_USAGE);
       let toolUsage = DEFAULT_TOOLS;
       
@@ -169,7 +167,7 @@ export const useAnalytics = () => {
         sessionData.startTime = now;
         sessionData.lastVisit = now;
 
-        // Definir cookies de sessão (24 horas)
+        // Definir cookies de sessão (24 horas) - SEMPRE
         setCookie(COOKIE_KEYS.SESSION_ID, sessionData.sessionId, 24);
         setCookie(COOKIE_KEYS.LAST_VISIT, now.toISOString(), 24);
       } else {
@@ -178,7 +176,7 @@ export const useAnalytics = () => {
         setCookie(COOKIE_KEYS.LAST_VISIT, now.toISOString(), 24);
       }
 
-      // Salvar dados da sessão
+      // SEMPRE salva dados da sessão e uso de ferramentas
       localStorage.setItem(STORAGE_KEYS.SESSION_DATA, JSON.stringify(sessionData));
 
       const totalUsage = toolUsage.reduce((sum, tool) => sum + tool.uses, 0);
@@ -197,9 +195,8 @@ export const useAnalytics = () => {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   };
 
+  // SEMPRE rastreia uso de ferramentas (obrigatório)
   const trackToolUsage = useCallback((toolId: string) => {
-    if (!cookieConsent || !cookieSettings.analytics) return;
-
     setAnalyticsData(prev => {
       const updatedUsage = prev.toolUsage.map(tool => 
         tool.id === toolId 
@@ -209,7 +206,7 @@ export const useAnalytics = () => {
 
       const totalUsage = updatedUsage.reduce((sum, tool) => sum + tool.uses, 0);
 
-      // Save to localStorage
+      // SEMPRE salva no localStorage (obrigatório)
       try {
         localStorage.setItem(STORAGE_KEYS.TOOL_USAGE, JSON.stringify(updatedUsage));
       } catch (error) {
@@ -222,7 +219,7 @@ export const useAnalytics = () => {
         totalUsage
       };
     });
-  }, [cookieConsent, cookieSettings.analytics]);
+  }, []); // Removida dependência de cookieConsent - sempre executa
 
   const acceptCookies = useCallback((settings = cookieSettings) => {
     setCookieConsent(true);
@@ -231,9 +228,8 @@ export const useAnalytics = () => {
     localStorage.setItem(STORAGE_KEYS.COOKIE_CONSENT, 'true');
     localStorage.setItem(STORAGE_KEYS.COOKIE_SETTINGS, JSON.stringify(settings));
     
-    if (settings.analytics) {
-      loadAnalyticsData();
-    }
+    // Recarrega dados se necessário (mas uso de ferramentas já está sempre ativo)
+    loadAnalyticsData();
   }, [cookieSettings, loadAnalyticsData]);
 
   const declineCookies = useCallback(() => {
@@ -253,34 +249,24 @@ export const useAnalytics = () => {
       functional: false
     }));
 
-    // Clear analytics data and cookies
-    localStorage.removeItem(STORAGE_KEYS.TOOL_USAGE);
-    localStorage.removeItem(STORAGE_KEYS.SESSION_DATA);
-    deleteCookie(COOKIE_KEYS.SESSION_ID);
-    deleteCookie(COOKIE_KEYS.LAST_VISIT);
+    // NÃO remove dados de uso de ferramentas (obrigatório)
+    // Apenas remove cookies de sessão se analytics for desabilitado
+    // Mas mantém funcionalidade básica de contagem
   }, []);
 
   const updateCookieSettings = useCallback((newSettings: typeof cookieSettings) => {
     setCookieSettings(newSettings);
     localStorage.setItem(STORAGE_KEYS.COOKIE_SETTINGS, JSON.stringify(newSettings));
     
-    if (!newSettings.analytics) {
-      // Clear analytics data if analytics is disabled
-      localStorage.removeItem(STORAGE_KEYS.TOOL_USAGE);
-      localStorage.removeItem(STORAGE_KEYS.SESSION_DATA);
-      deleteCookie(COOKIE_KEYS.SESSION_ID);
-      deleteCookie(COOKIE_KEYS.LAST_VISIT);
-      setAnalyticsData(prev => ({
-        ...prev,
-        toolUsage: DEFAULT_TOOLS,
-        totalUsage: 0
-      }));
-    } else if (cookieConsent) {
+    // NÃO limpa dados de uso de ferramentas (sempre obrigatório)
+    // Apenas recarrega se necessário
+    if (cookieConsent) {
       loadAnalyticsData();
     }
   }, [cookieConsent, loadAnalyticsData]);
 
   const clearAllData = useCallback(() => {
+    // Remove TODOS os dados incluindo uso de ferramentas
     localStorage.removeItem(STORAGE_KEYS.TOOL_USAGE);
     localStorage.removeItem(STORAGE_KEYS.SESSION_DATA);
     localStorage.removeItem(STORAGE_KEYS.COOKIE_CONSENT);
