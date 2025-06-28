@@ -42,6 +42,7 @@ const DEFAULT_TOOLS: ToolUsage[] = [
   { id: 'markdown', name: 'Editor de Markdown', uses: 0, lastUsed: null },
   { id: 'lorem-ipsum', name: 'Gerador Lorem Ipsum', uses: 0, lastUsed: null },
   { id: 'device-generator', name: 'Gerador de Dispositivo', uses: 0, lastUsed: null },
+  { id: 'person-generator', name: 'Gerador de Pessoa', uses: 0, lastUsed: null },
 ];
 
 export const useAnalytics = () => {

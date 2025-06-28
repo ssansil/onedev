@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import DeviceGenerator from './components/DeviceGenerator';
+import PersonGenerator from './components/PersonGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiePolicy from './components/CookiePolicy';
 import LGPDInfo from './components/LGPDInfo';
@@ -76,6 +77,8 @@ function App() {
         return <Dashboard />;
       case 'device-generator':
         return <DeviceGenerator />;
+      case 'person-generator':
+        return <PersonGenerator />;
       case 'privacy':
         return <PrivacyPolicy />;
       case 'cookies':
