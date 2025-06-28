@@ -5,6 +5,7 @@ import DeviceGenerator from './components/DeviceGenerator';
 import PersonGenerator from './components/PersonGenerator';
 import CompanyGenerator from './components/CompanyGenerator';
 import CepGenerator from './components/CepGenerator';
+import ImcCalculator from './components/ImcCalculator';
 import LoremIpsumGenerator from './components/LoremIpsumGenerator';
 import FakeRestApiGenerator from './components/FakeRestApiGenerator';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -35,10 +36,8 @@ function App() {
       const toolId = event.detail;
       setCurrentTool(toolId);
       
-      // Track tool usage if analytics is enabled
-      if (cookieConsent && cookieSettings.analytics) {
-        trackToolUsage(toolId);
-      }
+      // Track tool usage (sempre ativo - obrigatório)
+      trackToolUsage(toolId);
     };
 
     window.addEventListener('toolChange', handleToolChange as EventListener);
@@ -46,7 +45,7 @@ function App() {
     return () => {
       window.removeEventListener('toolChange', handleToolChange as EventListener);
     };
-  }, [cookieConsent, cookieSettings.analytics, trackToolUsage]);
+  }, [trackToolUsage]);
 
   // Show cookie modal if consent hasn't been given
   useEffect(() => {
@@ -87,6 +86,8 @@ function App() {
         return <CompanyGenerator />;
       case 'cep-generator':
         return <CepGenerator />;
+      case 'imc-calculator':
+        return <ImcCalculator />;
       case 'lorem-ipsum':
         return <LoremIpsumGenerator />;
       case 'fake-rest-api':
