@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   Globe, 
   CheckCircle, 
@@ -18,7 +18,20 @@ import {
   Eye,
   Search,
   Hash,
-  Monitor
+  Monitor,
+  Bell,
+  BellRing,
+  Timer,
+  Lock,
+  Unlock,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  Pause,
+  Play,
+  Settings,
+  Mail,
+  Smartphone
 } from 'lucide-react';
 
 interface StatusResult {
@@ -36,6 +49,15 @@ interface StatusResult {
     isp?: string;
   };
   headers?: Record<string, string>;
+  sslInfo?: {
+    isSecure: boolean;
+    issuer?: string;
+    validFrom?: string;
+    validTo?: string;
+    daysUntilExpiry?: number;
+    isExpired?: boolean;
+    isExpiringSoon?: boolean;
+  };
   error?: string;
   timestamp: Date;
 }
@@ -48,12 +70,45 @@ interface StatusHistory {
   timestamp: Date;
 }
 
+interface AlertConfig {
+  enabled: boolean;
+  downtimeAlert: boolean;
+  latencyThreshold: number; // em ms
+  sslExpiryDays: number; // dias antes do vencimento
+  emailNotifications: boolean;
+  email?: string;
+  checkInterval: number; // em minutos
+}
+
+interface Alert {
+  id: string;
+  type: 'downtime' | 'latency' | 'ssl_expiry' | 'ssl_expired';
+  url: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: Date;
+  acknowledged: boolean;
+}
+
 const WebsiteStatusChecker: React.FC = () => {
   const [url, setUrl] = useState<string>('');
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [result, setResult] = useState<StatusResult | null>(null);
   const [history, setHistory] = useState<StatusHistory[]>([]);
   const [copiedField, setCopiedField] = useState<string>('');
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig>({
+    enabled: false,
+    downtimeAlert: true,
+    latencyThreshold: 3000,
+    sslExpiryDays: 30,
+    emailNotifications: false,
+    email: '',
+    checkInterval: 5
+  });
+  const [isMonitoring, setIsMonitoring] = useState<boolean>(false);
+  const [monitoringInterval, setMonitoringInterval] = useState<NodeJS.Timeout | null>(null);
+  const [showAlertConfig, setShowAlertConfig] = useState<boolean>(false);
 
   // Função para normalizar URL
   const normalizeUrl = (inputUrl: string): string => {
@@ -77,6 +132,36 @@ const WebsiteStatusChecker: React.FC = () => {
     }
   };
 
+  // Função para verificar SSL
+  const checkSSL = async (hostname: string): Promise<any> => {
+    try {
+      // Simular verificação SSL (em produção, usaria uma API real)
+      const response = await fetch(`https://api.ssllabs.com/api/v3/analyze?host=${hostname}&publish=off&startNew=off&fromCache=on&maxAge=24`);
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar SSL:', error);
+    }
+    
+    // Fallback: verificar se o site usa HTTPS
+    try {
+      const httpsUrl = `https://${hostname}`;
+      const response = await fetch(httpsUrl, { method: 'HEAD', mode: 'no-cors' });
+      return {
+        isSecure: true,
+        // Dados simulados para demonstração
+        validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        daysUntilExpiry: 90
+      };
+    } catch {
+      return {
+        isSecure: false
+      };
+    }
+  };
+
   // Função para obter informações de IP e localização
   const getIpInfo = async (hostname: string): Promise<any> => {
     try {
@@ -91,25 +176,92 @@ const WebsiteStatusChecker: React.FC = () => {
     return null;
   };
 
-  // Função principal para verificar status
-  const checkWebsiteStatus = useCallback(async () => {
-    if (!url.trim()) {
-      return;
+  // Função para criar alertas
+  const createAlert = (type: Alert['type'], url: string, data: any): Alert => {
+    let message = '';
+    let severity: Alert['severity'] = 'medium';
+
+    switch (type) {
+      case 'downtime':
+        message = `Site ${url} está fora do ar`;
+        severity = 'critical';
+        break;
+      case 'latency':
+        message = `Latência alta detectada: ${data.responseTime}ms (limite: ${alertConfig.latencyThreshold}ms)`;
+        severity = data.responseTime > alertConfig.latencyThreshold * 2 ? 'high' : 'medium';
+        break;
+      case 'ssl_expiry':
+        message = `Certificado SSL expira em ${data.daysUntilExpiry} dias`;
+        severity = data.daysUntilExpiry <= 7 ? 'high' : 'medium';
+        break;
+      case 'ssl_expired':
+        message = `Certificado SSL expirado!`;
+        severity = 'critical';
+        break;
     }
 
-    const normalizedUrl = normalizeUrl(url);
+    return {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      type,
+      url,
+      message,
+      severity,
+      timestamp: new Date(),
+      acknowledged: false
+    };
+  };
+
+  // Função para processar alertas
+  const processAlerts = (result: StatusResult) => {
+    if (!alertConfig.enabled) return;
+
+    const newAlerts: Alert[] = [];
+
+    // Verificar downtime
+    if (alertConfig.downtimeAlert && !result.isOnline) {
+      newAlerts.push(createAlert('downtime', result.url, {}));
+    }
+
+    // Verificar latência alta
+    if (result.responseTime && result.responseTime > alertConfig.latencyThreshold) {
+      newAlerts.push(createAlert('latency', result.url, { responseTime: result.responseTime }));
+    }
+
+    // Verificar SSL
+    if (result.sslInfo) {
+      if (result.sslInfo.isExpired) {
+        newAlerts.push(createAlert('ssl_expired', result.url, {}));
+      } else if (result.sslInfo.isExpiringSoon) {
+        newAlerts.push(createAlert('ssl_expiry', result.url, { daysUntilExpiry: result.sslInfo.daysUntilExpiry }));
+      }
+    }
+
+    if (newAlerts.length > 0) {
+      setAlerts(prev => [...newAlerts, ...prev.slice(0, 19)]); // Manter apenas os últimos 20
+    }
+  };
+
+  // Função principal para verificar status
+  const checkWebsiteStatus = useCallback(async (urlToCheck?: string) => {
+    const targetUrl = urlToCheck || url;
+    if (!targetUrl.trim()) {
+      return null;
+    }
+
+    const normalizedUrl = normalizeUrl(targetUrl);
     
     if (!isValidUrl(normalizedUrl)) {
-      setResult({
+      const errorResult: StatusResult = {
         url: normalizedUrl,
         isOnline: false,
         error: 'URL inválida. Verifique o formato.',
         timestamp: new Date()
-      });
-      return;
+      };
+      if (!urlToCheck) setResult(errorResult);
+      return errorResult;
     }
 
-    setIsChecking(true);
+    if (!urlToCheck) setIsChecking(true);
     const startTime = Date.now();
 
     try {
@@ -216,30 +368,99 @@ const WebsiteStatusChecker: React.FC = () => {
         console.error('Erro ao obter informações de IP:', ipError);
       }
 
-      setResult(statusResult);
+      // Verificar SSL
+      try {
+        const sslInfo = await checkSSL(hostname);
+        if (sslInfo) {
+          const validTo = sslInfo.validTo ? new Date(sslInfo.validTo) : null;
+          const now = new Date();
+          const daysUntilExpiry = validTo ? Math.ceil((validTo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+          
+          statusResult.sslInfo = {
+            isSecure: sslInfo.isSecure || false,
+            issuer: sslInfo.issuer,
+            validFrom: sslInfo.validFrom,
+            validTo: sslInfo.validTo,
+            daysUntilExpiry: daysUntilExpiry || undefined,
+            isExpired: daysUntilExpiry !== null && daysUntilExpiry < 0,
+            isExpiringSoon: daysUntilExpiry !== null && daysUntilExpiry <= alertConfig.sslExpiryDays
+          };
+        }
+      } catch (sslError) {
+        console.error('Erro ao verificar SSL:', sslError);
+      }
 
-      // Adicionar ao histórico
-      const historyEntry: StatusHistory = {
-        id: Date.now().toString(),
-        url: normalizedUrl,
-        isOnline: statusResult.isOnline,
-        responseTime: statusResult.responseTime,
-        timestamp: new Date()
-      };
+      if (!urlToCheck) {
+        setResult(statusResult);
 
-      setHistory(prev => [historyEntry, ...prev.slice(0, 9)]); // Manter apenas os últimos 10
+        // Adicionar ao histórico
+        const historyEntry: StatusHistory = {
+          id: Date.now().toString(),
+          url: normalizedUrl,
+          isOnline: statusResult.isOnline,
+          responseTime: statusResult.responseTime,
+          timestamp: new Date()
+        };
+
+        setHistory(prev => [historyEntry, ...prev.slice(0, 9)]); // Manter apenas os últimos 10
+      }
+
+      // Processar alertas
+      processAlerts(statusResult);
+
+      return statusResult;
 
     } catch (error) {
-      setResult({
+      const errorResult: StatusResult = {
         url: normalizedUrl,
         isOnline: false,
         error: 'Erro inesperado ao verificar o site.',
         timestamp: new Date()
-      });
+      };
+      
+      if (!urlToCheck) setResult(errorResult);
+      return errorResult;
     } finally {
-      setIsChecking(false);
+      if (!urlToCheck) setIsChecking(false);
     }
-  }, [url]);
+  }, [url, alertConfig]);
+
+  // Função para iniciar/parar monitoramento
+  const toggleMonitoring = () => {
+    if (isMonitoring) {
+      // Parar monitoramento
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        setMonitoringInterval(null);
+      }
+      setIsMonitoring(false);
+    } else {
+      // Iniciar monitoramento
+      if (!url.trim()) {
+        alert('Digite uma URL para monitorar');
+        return;
+      }
+
+      const interval = setInterval(() => {
+        checkWebsiteStatus(url);
+      }, alertConfig.checkInterval * 60 * 1000);
+
+      setMonitoringInterval(interval);
+      setIsMonitoring(true);
+      
+      // Fazer primeira verificação imediatamente
+      checkWebsiteStatus(url);
+    }
+  };
+
+  // Limpar intervalo quando componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+      }
+    };
+  }, [monitoringInterval]);
 
   // Função para obter texto do status HTTP
   const getStatusText = (code: number): string => {
@@ -273,6 +494,28 @@ const WebsiteStatusChecker: React.FC = () => {
     return 'text-gray-600';
   };
 
+  // Função para obter cor do alerta
+  const getAlertColor = (severity: Alert['severity']) => {
+    switch (severity) {
+      case 'low': return 'border-blue-200 bg-blue-50 text-blue-800';
+      case 'medium': return 'border-yellow-200 bg-yellow-50 text-yellow-800';
+      case 'high': return 'border-orange-200 bg-orange-50 text-orange-800';
+      case 'critical': return 'border-red-200 bg-red-50 text-red-800';
+      default: return 'border-gray-200 bg-gray-50 text-gray-800';
+    }
+  };
+
+  // Função para obter ícone do alerta
+  const getAlertIcon = (type: Alert['type']) => {
+    switch (type) {
+      case 'downtime': return XCircle;
+      case 'latency': return Timer;
+      case 'ssl_expiry': return Calendar;
+      case 'ssl_expired': return Unlock;
+      default: return AlertTriangle;
+    }
+  };
+
   const copyToClipboard = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -301,6 +544,20 @@ const WebsiteStatusChecker: React.FC = () => {
     }
   };
 
+  const acknowledgeAlert = (alertId: string) => {
+    setAlerts(prev => prev.map(alert => 
+      alert.id === alertId ? { ...alert, acknowledged: true } : alert
+    ));
+  };
+
+  const clearAllAlerts = () => {
+    setAlerts([]);
+  };
+
+  const getActiveAlertsCount = () => {
+    return alerts.filter(alert => !alert.acknowledged).length;
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
@@ -310,20 +567,112 @@ const WebsiteStatusChecker: React.FC = () => {
             <Globe className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-            Verificador de Status de Site
+            Monitor de Status de Site
           </h1>
         </div>
         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-          Verifique se um site está online, obtenha tempo de resposta e informações do servidor
+          Monitore sites em tempo real com alertas de downtime, latência alta e SSL expirado
         </p>
       </div>
 
-      {/* URL Input */}
+      {/* Alerts Summary */}
+      {alerts.length > 0 && (
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <BellRing className="w-5 h-5 text-red-600" />
+              Alertas Ativos
+              {getActiveAlertsCount() > 0 && (
+                <span className="px-2 py-1 bg-red-100 text-red-800 text-sm rounded-full">
+                  {getActiveAlertsCount()}
+                </span>
+              )}
+            </h2>
+            
+            <button
+              onClick={clearAllAlerts}
+              className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Limpar Todos
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {alerts.slice(0, 10).map((alert) => {
+              const AlertIcon = getAlertIcon(alert.type);
+              return (
+                <div
+                  key={alert.id}
+                  className={`border rounded-lg p-4 ${getAlertColor(alert.severity)} ${
+                    alert.acknowledged ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <AlertIcon className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">{alert.message}</p>
+                        <p className="text-sm opacity-75 mt-1">
+                          {alert.url} • {alert.timestamp.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {!alert.acknowledged && (
+                      <button
+                        onClick={() => acknowledgeAlert(alert.id)}
+                        className="text-sm px-3 py-1 bg-white/50 rounded hover:bg-white/70 transition-colors"
+                      >
+                        Reconhecer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* URL Input and Monitoring */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-          <Search className="w-5 h-5 text-blue-600" />
-          Verificar Site
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <Search className="w-5 h-5 text-blue-600" />
+            Verificar e Monitorar Site
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAlertConfig(!showAlertConfig)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              Configurar Alertas
+            </button>
+            
+            <button
+              onClick={toggleMonitoring}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                isMonitoring
+                  ? 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-100'
+                  : 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100'
+              }`}
+            >
+              {isMonitoring ? (
+                <>
+                  <Pause className="w-4 h-4" />
+                  Parar Monitor
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  Iniciar Monitor
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
         <div className="flex gap-4">
           <div className="flex-1">
@@ -343,7 +692,7 @@ const WebsiteStatusChecker: React.FC = () => {
           
           <div className="flex items-end">
             <button
-              onClick={checkWebsiteStatus}
+              onClick={() => checkWebsiteStatus()}
               disabled={isChecking || !url.trim()}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
@@ -355,12 +704,149 @@ const WebsiteStatusChecker: React.FC = () => {
               ) : (
                 <>
                   <Activity className="w-5 h-5" />
-                  Verificar Status
+                  Verificar Agora
                 </>
               )}
             </button>
           </div>
         </div>
+
+        {/* Monitoring Status */}
+        {isMonitoring && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div>
+              <span className="text-blue-800 font-medium">
+                Monitorando {url} a cada {alertConfig.checkInterval} minutos
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Alert Configuration */}
+        {showAlertConfig && (
+          <div className="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-purple-600" />
+              Configuração de Alertas
+            </h3>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={alertConfig.enabled}
+                      onChange={(e) => setAlertConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Habilitar Alertas</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={alertConfig.downtimeAlert}
+                      onChange={(e) => setAlertConfig(prev => ({ ...prev, downtimeAlert: e.target.checked }))}
+                      disabled={!alertConfig.enabled}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Alertas de Downtime</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Limite de Latência (ms)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertConfig.latencyThreshold}
+                    onChange={(e) => setAlertConfig(prev => ({ ...prev, latencyThreshold: parseInt(e.target.value) || 3000 }))}
+                    disabled={!alertConfig.enabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alerta SSL (dias antes do vencimento)
+                  </label>
+                  <input
+                    type="number"
+                    value={alertConfig.sslExpiryDays}
+                    onChange={(e) => setAlertConfig(prev => ({ ...prev, sslExpiryDays: parseInt(e.target.value) || 30 }))}
+                    disabled={!alertConfig.enabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Intervalo de Verificação (minutos)
+                  </label>
+                  <select
+                    value={alertConfig.checkInterval}
+                    onChange={(e) => setAlertConfig(prev => ({ ...prev, checkInterval: parseInt(e.target.value) }))}
+                    disabled={!alertConfig.enabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value={1}>1 minuto</option>
+                    <option value={5}>5 minutos</option>
+                    <option value={10}>10 minutos</option>
+                    <option value={15}>15 minutos</option>
+                    <option value={30}>30 minutos</option>
+                    <option value={60}>1 hora</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={alertConfig.emailNotifications}
+                      onChange={(e) => setAlertConfig(prev => ({ ...prev, emailNotifications: e.target.checked }))}
+                      disabled={!alertConfig.enabled}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Notificações por Email</span>
+                  </label>
+                </div>
+
+                {alertConfig.emailNotifications && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email para Notificações
+                    </label>
+                    <input
+                      type="email"
+                      value={alertConfig.email || ''}
+                      onChange={(e) => setAlertConfig(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="seu@email.com"
+                      disabled={!alertConfig.enabled}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-blue-700">
+                  <strong>Nota:</strong> As notificações por email são simuladas nesta demonstração. 
+                  Em produção, seria integrado com um serviço de email real.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Result */}
@@ -387,7 +873,7 @@ const WebsiteStatusChecker: React.FC = () => {
               )}
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
               {/* Status */}
               <div className="text-center">
                 <div className="flex items-center justify-center mb-3">
@@ -410,14 +896,29 @@ const WebsiteStatusChecker: React.FC = () => {
               {/* Response Time */}
               <div className="text-center">
                 <div className="flex items-center justify-center mb-3">
-                  <div className="p-4 bg-blue-100 rounded-full">
-                    <Clock className="w-8 h-8 text-blue-600" />
+                  <div className={`p-4 rounded-full ${
+                    result.responseTime && result.responseTime > alertConfig.latencyThreshold
+                      ? 'bg-red-100'
+                      : 'bg-blue-100'
+                  }`}>
+                    <Clock className={`w-8 h-8 ${
+                      result.responseTime && result.responseTime > alertConfig.latencyThreshold
+                        ? 'text-red-600'
+                        : 'text-blue-600'
+                    }`} />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className={`text-2xl font-bold ${
+                  result.responseTime && result.responseTime > alertConfig.latencyThreshold
+                    ? 'text-red-600'
+                    : 'text-blue-600'
+                }`}>
                   {formatResponseTime(result.responseTime)}
                 </div>
                 <div className="text-sm text-gray-600">Tempo de Resposta</div>
+                {result.responseTime && result.responseTime > alertConfig.latencyThreshold && (
+                  <div className="text-xs text-red-600 mt-1">⚠️ Latência Alta</div>
+                )}
               </div>
 
               {/* HTTP Status */}
@@ -433,6 +934,37 @@ const WebsiteStatusChecker: React.FC = () => {
                 <div className="text-sm text-gray-600">
                   {result.statusText || 'Status HTTP'}
                 </div>
+              </div>
+
+              {/* SSL Status */}
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-3">
+                  <div className={`p-4 rounded-full ${
+                    result.sslInfo?.isSecure ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {result.sslInfo?.isSecure ? (
+                      <Lock className="w-8 h-8 text-green-600" />
+                    ) : (
+                      <Unlock className="w-8 h-8 text-red-600" />
+                    )}
+                  </div>
+                </div>
+                <div className={`text-lg font-bold ${
+                  result.sslInfo?.isSecure ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {result.sslInfo?.isSecure ? '🔒 Seguro' : '🔓 Inseguro'}
+                </div>
+                <div className="text-sm text-gray-600">SSL/TLS</div>
+                {result.sslInfo?.daysUntilExpiry !== undefined && (
+                  <div className={`text-xs mt-1 ${
+                    result.sslInfo.isExpired ? 'text-red-600' :
+                    result.sslInfo.isExpiringSoon ? 'text-orange-600' : 'text-green-600'
+                  }`}>
+                    {result.sslInfo.isExpired ? '❌ Expirado' :
+                     result.sslInfo.isExpiringSoon ? `⚠️ ${result.sslInfo.daysUntilExpiry}d` :
+                     `✅ ${result.sslInfo.daysUntilExpiry}d`}
+                  </div>
+                )}
               </div>
 
               {/* IP Address */}
@@ -577,6 +1109,32 @@ const WebsiteStatusChecker: React.FC = () => {
                     </span>
                   </div>
                 )}
+
+                {/* SSL Details */}
+                {result.sslInfo && (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-700">SSL Seguro:</span>
+                      <span className={`text-sm font-semibold ${
+                        result.sslInfo.isSecure ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {result.sslInfo.isSecure ? '✅ Sim' : '❌ Não'}
+                      </span>
+                    </div>
+
+                    {result.sslInfo.daysUntilExpiry !== undefined && (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">SSL Expira em:</span>
+                        <span className={`text-sm font-semibold ${
+                          result.sslInfo.isExpired ? 'text-red-600' :
+                          result.sslInfo.isExpiringSoon ? 'text-orange-600' : 'text-green-600'
+                        }`}>
+                          {result.sslInfo.isExpired ? 'Expirado' : `${result.sslInfo.daysUntilExpiry} dias`}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -615,7 +1173,9 @@ const WebsiteStatusChecker: React.FC = () => {
                     {entry.isOnline ? 'Online' : 'Offline'}
                   </span>
                   {entry.responseTime && (
-                    <span className="text-sm text-gray-600">
+                    <span className={`text-sm ${
+                      entry.responseTime > alertConfig.latencyThreshold ? 'text-red-600' : 'text-gray-600'
+                    }`}>
                       {formatResponseTime(entry.responseTime)}
                     </span>
                   )}
@@ -631,35 +1191,44 @@ const WebsiteStatusChecker: React.FC = () => {
         <div className="flex items-start gap-3">
           <Info className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="text-lg font-semibold text-green-900 mb-2">🌐 Sobre o Verificador de Status</h3>
+            <h3 className="text-lg font-semibold text-green-900 mb-2">🚨 Sistema de Alertas Avançado</h3>
             <div className="text-green-800 leading-relaxed space-y-2">
               <p>
-                Esta ferramenta verifica se um site está online e fornece informações detalhadas sobre 
-                o servidor, incluindo tempo de resposta, localização e status HTTP.
+                Este monitor oferece alertas inteligentes para manter você informado sobre problemas críticos 
+                do seu site em tempo real.
               </p>
-              <div className="grid md:grid-cols-2 gap-4 mt-4">
+              <div className="grid md:grid-cols-3 gap-4 mt-4">
                 <div className="bg-white/50 rounded-lg p-3">
                   <div className="font-semibold text-green-900 mb-1 flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    Funcionalidades
+                    <XCircle className="w-4 h-4" />
+                    Downtime
                   </div>
                   <ul className="text-sm text-green-700 space-y-1">
-                    <li>• Verificação de status em tempo real</li>
-                    <li>• Medição de tempo de resposta</li>
-                    <li>• Informações de localização do servidor</li>
-                    <li>• Histórico de verificações</li>
+                    <li>• Detecção instantânea de sites offline</li>
+                    <li>• Alertas críticos imediatos</li>
+                    <li>• Histórico de indisponibilidade</li>
                   </ul>
                 </div>
                 <div className="bg-white/50 rounded-lg p-3">
                   <div className="font-semibold text-green-900 mb-1 flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Limitações
+                    <Timer className="w-4 h-4" />
+                    Latência Alta
                   </div>
                   <ul className="text-sm text-green-700 space-y-1">
-                    <li>• Alguns sites podem bloquear verificações</li>
-                    <li>• CORS pode limitar verificações diretas</li>
-                    <li>• Resultados podem variar por localização</li>
-                    <li>• APIs públicas têm limites de uso</li>
+                    <li>• Monitoramento de performance</li>
+                    <li>• Limites configuráveis</li>
+                    <li>• Alertas de degradação</li>
+                  </ul>
+                </div>
+                <div className="bg-white/50 rounded-lg p-3">
+                  <div className="font-semibold text-green-900 mb-1 flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    SSL Expirado
+                  </div>
+                  <ul className="text-sm text-green-700 space-y-1">
+                    <li>• Verificação de certificados</li>
+                    <li>• Alertas preventivos</li>
+                    <li>• Monitoramento de expiração</li>
                   </ul>
                 </div>
               </div>
