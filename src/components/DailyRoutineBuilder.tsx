@@ -31,7 +31,8 @@ import {
   Eye,
   Settings,
   Save,
-  Share2
+  Share2,
+  BarChart3
 } from 'lucide-react';
 
 interface TimeSlot {
