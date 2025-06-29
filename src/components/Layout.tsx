@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Search, Calculator, Palette, Code, Settings, Home, CreditCard, Code2, Link, FileText, BarChart3, Shield, Scale, Cookie, Heart, Cog, Hash, QrCode, GitBranch, Monitor, Key, Lock, Type, Smartphone, User, Server, Building2, MapPin, Activity } from 'lucide-react';
+import { Menu, X, Search, Calculator, Palette, Code, Settings, Home, CreditCard, Code2, Link, FileText, BarChart3, Shield, Scale, Cookie, Heart, Cog, Hash, QrCode, GitBranch, Monitor, Key, Lock, Type, Smartphone, User, Server, Building2, MapPin, Activity, Calendar } from 'lucide-react';
 import CookieSettingsModal, { CookieSettings } from './CookieSettings';
 import { useAnalytics } from '../hooks/useAnalytics';
 
@@ -16,9 +16,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTool = 'seo' }) => {
 
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, active: currentTool === 'dashboard' },
-        { id: 'seo', name: 'Gerador de SEO', icon: Search, active: currentTool === 'seo' },
+    { id: 'seo', name: 'Gerador de SEO', icon: Search, active: currentTool === 'seo' },
+    { id: 'daily-routine', name: 'Criador de Rotina', icon: Calendar, active: currentTool === 'daily-routine' },
     { id: 'device-generator', name: 'Gerador de Dispositivo', icon: Smartphone, active: currentTool === 'device-generator' },
-    
     { id: 'person-generator', name: 'Gerador de Pessoa', icon: User, active: currentTool === 'person-generator' },
     { id: 'company-generator', name: 'Gerador de Empresa', icon: Building2, active: currentTool === 'company-generator' },
     { id: 'cep-generator', name: 'Gerador de CEP', icon: MapPin, active: currentTool === 'cep-generator' },

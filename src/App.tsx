@@ -16,6 +16,7 @@ import Changelog from './components/Changelog';
 import CookieModal from './components/CookieModal';
 import CookieSettingsModal, { CookieSettings } from './components/CookieSettings';
 import SEOGenerator from './components/SEOGenerator';
+import DailyRoutineBuilder from './components/DailyRoutineBuilder';
 import { useAnalytics } from './hooks/useAnalytics';
 
 function App() {
@@ -79,9 +80,11 @@ function App() {
     switch (currentTool) {
       case 'dashboard':
         return <Dashboard />;
-     case 'seo':
+      case 'seo':
         return <SEOGenerator />;
-     case 'device-generator':
+      case 'daily-routine':
+        return <DailyRoutineBuilder />;
+      case 'device-generator':
         return <DeviceGenerator />;
       case 'person-generator':
         return <PersonGenerator />;
