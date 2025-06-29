@@ -17,6 +17,7 @@ import CookieModal from './components/CookieModal';
 import CookieSettingsModal, { CookieSettings } from './components/CookieSettings';
 import SEOGenerator from './components/SEOGenerator';
 import DailyRoutineBuilder from './components/DailyRoutineBuilder';
+import UnitConverter from './components/UnitConverter';
 import { useAnalytics } from './hooks/useAnalytics';
 
 function App() {
@@ -82,6 +83,8 @@ function App() {
         return <Dashboard />;
       case 'seo':
         return <SEOGenerator />;
+      case 'unit-converter':
+        return <UnitConverter />;
       case 'daily-routine':
         return <DailyRoutineBuilder />;
       case 'device-generator':

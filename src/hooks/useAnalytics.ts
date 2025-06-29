@@ -35,6 +35,7 @@ const COOKIE_KEYS = {
 
 const DEFAULT_TOOLS: ToolUsage[] = [
   { id: 'seo', name: 'Gerador de SEO', uses: 0, lastUsed: null },
+  { id: 'unit-converter', name: 'Conversor de Unidades', uses: 0, lastUsed: null },
   { id: 'daily-routine', name: 'Criador de Rotina', uses: 0, lastUsed: null },
   { id: 'json', name: 'Formatador JSON', uses: 0, lastUsed: null },
   { id: 'cpf-cnpj', name: 'Gerador CPF/CNPJ', uses: 0, lastUsed: null },
