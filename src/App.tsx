@@ -19,6 +19,7 @@ import SEOGenerator from './components/SEOGenerator';
 import DailyRoutineBuilder from './components/DailyRoutineBuilder';
 import UnitConverter from './components/UnitConverter';
 import WebsiteStatusChecker from './components/WebsiteStatusChecker';
+import FileConverter from './components/FileConverter';
 import { useAnalytics } from './hooks/useAnalytics';
 
 function App() {
@@ -84,6 +85,8 @@ function App() {
         return <Dashboard />;
       case 'seo':
         return <SEOGenerator />;
+      case 'file-converter':
+        return <FileConverter />;
       case 'website-status':
         return <WebsiteStatusChecker />;
       case 'unit-converter':

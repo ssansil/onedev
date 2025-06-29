@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Search, Calculator, Palette, Code, Settings, Home, CreditCard, Code2, Link, FileText, BarChart3, Shield, Scale, Cookie, Heart, Cog, Hash, QrCode, GitBranch, Monitor, Key, Lock, Type, Smartphone, User, Server, Building2, MapPin, Activity, Calendar, ArrowRightLeft, Globe } from 'lucide-react';
+import { Menu, X, Search, Calculator, Palette, Code, Settings, Home, CreditCard, Code2, Link, FileText, BarChart3, Shield, Scale, Cookie, Heart, Cog, Hash, QrCode, GitBranch, Monitor, Key, Lock, Type, Smartphone, User, Server, Building2, MapPin, Activity, Calendar, ArrowRightLeft, Globe, RefreshCw } from 'lucide-react';
 import CookieSettingsModal, { CookieSettings } from './CookieSettings';
 import { useAnalytics } from '../hooks/useAnalytics';
 
@@ -17,6 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTool = 'seo' }) => {
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, active: currentTool === 'dashboard' },
     { id: 'seo', name: 'Gerador de SEO', icon: Search, active: currentTool === 'seo' },
+    { id: 'file-converter', name: 'Conversor de Arquivos', icon: RefreshCw, active: currentTool === 'file-converter' },
     { id: 'website-status', name: 'Status de Site', icon: Globe, active: currentTool === 'website-status' },
     { id: 'unit-converter', name: 'Conversor de Unidades', icon: ArrowRightLeft, active: currentTool === 'unit-converter' },
     { id: 'daily-routine', name: 'Criador de Rotina', icon: Calendar, active: currentTool === 'daily-routine' },
